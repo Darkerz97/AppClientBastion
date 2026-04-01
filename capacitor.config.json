@@ -1,0 +1,6 @@
+{
+  "appId": "com.cardbastion.clientes",
+  "appName": "Card Bastion",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

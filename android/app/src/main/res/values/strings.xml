@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Card Bastion</string>
+    <string name="title_activity_main">Card Bastion</string>
+    <string name="package_name">com.cardbastion.clientes</string>
+    <string name="custom_url_scheme">com.cardbastion.clientes</string>
+</resources>
