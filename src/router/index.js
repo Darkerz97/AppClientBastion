@@ -2,8 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ArticlesPage from '../pages/ArticlesPage.vue'
 import HomePage from '../pages/HomePage.vue'
 import LoginPage from '../pages/LoginPage.vue'
+import OrdersPage from '../pages/OrdersPage.vue'
 import PreordersPage from '../pages/PreordersPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
+import RegisterPage from '../pages/RegisterPage.vue'
+import TournamentsPage from '../pages/TournamentsPage.vue'
 import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
@@ -13,6 +16,14 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginPage,
+      meta: {
+        guestOnly: true,
+      },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterPage,
       meta: {
         guestOnly: true,
       },
@@ -30,6 +41,24 @@ const router = createRouter({
       path: '/articles',
       name: 'articles',
       component: ArticlesPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
+      path: '/orders',
+      name: 'orders',
+      component: OrdersPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
+      path: '/tournaments',
+      name: 'tournaments',
+      component: TournamentsPage,
       meta: {
         requiresAuth: true,
         layout: 'app',

@@ -13,6 +13,24 @@ import { RouterLink } from 'vue-router'
       <span>Home</span>
     </RouterLink>
 
+    <RouterLink class="nav-link" to="/orders">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2m1 3v2h8V8zm0 4v2h5v-2z" />
+        </svg>
+      </span>
+      <span>Compras</span>
+    </RouterLink>
+
+    <RouterLink class="nav-link" to="/tournaments">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 4h10v4a4 4 0 0 1-3 3.87V14h2a1 1 0 0 1 1 1v2H7v-2a1 1 0 0 1 1-1h2v-2.13A4 4 0 0 1 7 8zm2 2v2a2 2 0 1 0 4 0V6z" />
+        </svg>
+      </span>
+      <span>Torneos</span>
+    </RouterLink>
+
     <RouterLink class="nav-link" to="/preorders">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true">

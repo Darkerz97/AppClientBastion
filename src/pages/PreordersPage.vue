@@ -1,93 +1,24 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { getApiErrorMessage } from '../api/axios'
-import { getCustomerPreorders } from '../api/preorders'
+import DataModeNotice from '../components/DataModeNotice.vue'
 import AppHeader from '../components/AppHeader.vue'
 import EmptyState from '../components/EmptyState.vue'
 import LoadingState from '../components/LoadingState.vue'
 import StatCard from '../components/StatCard.vue'
+import { getCustomerPreorders } from '../services/preordersService'
 import { useAuthStore } from '../stores/auth'
+import { formatCurrency, formatShortDate } from '../utils/formatters'
+import { toServiceError } from '../utils/serviceError'
 
 const loading = ref(true)
 const error = ref('')
 const preorders = ref([])
 const authStore = useAuthStore()
 
-const currencyFormatter = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-  minimumFractionDigits: 2,
-})
-
 const totalCount = computed(() => preorders.value.length)
 const pendingTotal = computed(() =>
-  preorders.value.reduce((sum, preorder) => {
-    const pending = Number(preorderPending(preorder))
-    return sum + (Number.isNaN(pending) ? 0 : pending)
-  }, 0),
+  preorders.value.reduce((sum, preorder) => sum + preorder.pending, 0),
 )
-
-function normalizeAmount(value) {
-  const amount = Number(value || 0)
-  return currencyFormatter.format(Number.isNaN(amount) ? 0 : amount)
-}
-
-function normalizeStatus(status) {
-  const value = `${status || 'Sin estado'}`.trim()
-  return value || 'Sin estado'
-}
-
-function statusClass(status) {
-  const slug = normalizeStatus(status).toLowerCase().replace(/\s+/g, '-')
-
-  if (['pagado', 'paid', 'completed', 'completado'].includes(slug)) {
-    return 'is-settled'
-  }
-
-  if (['abonada', 'partial', 'partially-paid'].includes(slug)) {
-    return 'is-partial'
-  }
-
-  if (['pendiente', 'pending', 'processing', 'en-proceso'].includes(slug)) {
-    return 'is-pending'
-  }
-
-  if (['entregada', 'delivered'].includes(slug)) {
-    return 'is-delivered'
-  }
-
-  if (['cancelado', 'cancelled'].includes(slug)) {
-    return 'is-cancelled'
-  }
-
-  return 'is-default'
-}
-
-function preorderName(preorder) {
-  return (
-    preorder.product_name ||
-    preorder.product?.name ||
-    preorder.name ||
-    preorder.title ||
-    'Producto sin nombre'
-  )
-}
-
-function preorderStatus(preorder) {
-  return preorder.status || preorder.payment_status || preorder.state || 'Pendiente'
-}
-
-function preorderTotal(preorder) {
-  return preorder.total ?? preorder.total_amount ?? preorder.amount ?? 0
-}
-
-function preorderPaid(preorder) {
-  return preorder.paid ?? preorder.paid_amount ?? preorder.abonado ?? 0
-}
-
-function preorderPending(preorder) {
-  return preorder.pending ?? preorder.pending_amount ?? preorder.restante ?? 0
-}
 
 async function loadPreorders() {
   loading.value = true
@@ -96,7 +27,7 @@ async function loadPreorders() {
   try {
     preorders.value = await getCustomerPreorders()
   } catch (loadError) {
-    error.value = getApiErrorMessage(loadError, 'No se pudieron cargar las preventas.')
+    error.value = toServiceError(loadError, 'No se pudieron cargar las preventas.')
   } finally {
     loading.value = false
   }
@@ -109,7 +40,7 @@ onMounted(loadPreorders)
   <section class="page-section">
     <AppHeader
       title="Tus preventas"
-      subtitle="Sigue tus apartados, pagos y saldos pendientes."
+      subtitle="Sigue apartados, pagos, saldo pendiente y entrega."
       :avatar-name="authStore.customerName"
       :avatar-src="authStore.profilePhotoUrl"
     >
@@ -122,9 +53,11 @@ onMounted(loadPreorders)
       </template>
     </AppHeader>
 
+    <DataModeNotice :mode="authStore.authMode" />
+
     <section class="metric-grid">
       <StatCard label="Preventas activas" :value="`${totalCount}`" />
-      <StatCard label="Pendiente acumulado" :value="normalizeAmount(pendingTotal)" />
+      <StatCard label="Pendiente acumulado" :value="formatCurrency(pendingTotal)" />
     </section>
 
     <LoadingState
@@ -146,40 +79,53 @@ onMounted(loadPreorders)
     <EmptyState
       v-else-if="!preorders.length"
       title="Aun no tienes preventas"
-      message="Cuando registres un apartado en Card Bastion, lo veras aqui con su saldo y estado."
+      message="Cuando exista el endpoint publico para mis preventas, las veras aqui con pagos y entrega."
     />
 
     <section v-else class="list">
-      <article
-        v-for="(preorder, index) in preorders"
-        :key="preorder.id || preorder.uuid || `${preorderName(preorder)}-${index}`"
-        class="preorder-card premium-card"
-      >
+      <article v-for="preorder in preorders" :key="preorder.id" class="preorder-card premium-card">
         <div class="preorder-top">
           <div>
-            <p class="preorder-label">Producto</p>
-            <h2 class="preorder-name">{{ preorderName(preorder) }}</h2>
+            <p class="preorder-label">Preventa #{{ preorder.id }}</p>
+            <h2 class="preorder-name">{{ preorder.title }}</h2>
           </div>
 
-          <span class="status-pill" :class="statusClass(preorderStatus(preorder))">
-            {{ normalizeStatus(preorderStatus(preorder)) }}
+          <span class="status-pill" :class="preorder.pending > 0 ? 'is-partial' : 'is-settled'">
+            {{ preorder.status }}
           </span>
         </div>
 
         <div class="data-grid">
           <div class="data-point">
             <span>Total</span>
-            <strong>{{ normalizeAmount(preorderTotal(preorder)) }}</strong>
+            <strong>{{ formatCurrency(preorder.total) }}</strong>
           </div>
 
           <div class="data-point">
             <span>Pagado</span>
-            <strong>{{ normalizeAmount(preorderPaid(preorder)) }}</strong>
+            <strong>{{ formatCurrency(preorder.paid) }}</strong>
           </div>
 
           <div class="data-point">
             <span>Pendiente</span>
-            <strong>{{ normalizeAmount(preorderPending(preorder)) }}</strong>
+            <strong>{{ formatCurrency(preorder.pending) }}</strong>
+          </div>
+        </div>
+
+        <div class="data-grid preorder-detail-grid">
+          <div class="data-point">
+            <span>Entrega</span>
+            <strong>{{ preorder.deliveryStatus }}</strong>
+          </div>
+
+          <div class="data-point">
+            <span>Fecha</span>
+            <strong>{{ formatShortDate(preorder.createdAt) }}</strong>
+          </div>
+
+          <div class="data-point">
+            <span>Items</span>
+            <strong>{{ preorder.items.length }}</strong>
           </div>
         </div>
       </article>

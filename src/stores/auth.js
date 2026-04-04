@@ -1,7 +1,14 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getApiErrorMessage, AUTH_TOKEN_KEY } from '../api/axios'
-import { getCurrentCustomer, loginCustomer } from '../api/auth'
+import {
+  authClientMeta,
+  getCurrentCustomer,
+  loginCustomer,
+  logoutCustomer,
+  registerCustomer,
+  updateCustomerProfile,
+} from '../services/authClientService'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(AUTH_TOKEN_KEY) || '')
@@ -10,10 +17,13 @@ export const useAuthStore = defineStore('auth', () => {
   const bootstrapLoading = ref(false)
   const bootstrapped = ref(false)
   const error = ref('')
+  const savingProfile = ref(false)
+  const authMode = ref(authClientMeta.mode)
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value))
   const customerName = computed(() => user.value?.name || user.value?.first_name || 'Cliente')
   const customerFirstName = computed(() => customerName.value.trim().split(' ')[0] || 'Cliente')
+  const isUsingMockBackend = computed(() => authMode.value === 'mock')
   const customerInitials = computed(() => {
     const source = customerName.value.trim()
 
@@ -27,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
   // profile_photo_url, avatar_url, photo_url
   const profilePhotoUrl = computed(
     () =>
+      user.value?.profilePhotoUrl ||
       user.value?.profile_photo_url ||
       user.value?.avatar_url ||
       user.value?.photo_url ||
@@ -107,9 +118,91 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    clearSession()
+  async function register(payload) {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const session = await registerCustomer(payload)
+
+      if (!session.token) {
+        throw new Error('La respuesta de registro no devolvio una sesion valida.')
+      }
+
+      setToken(session.token)
+      setUser(session.customer)
+      bootstrapped.value = true
+    } catch (requestError) {
+      clearSession()
+      error.value = getApiErrorMessage(requestError, 'No fue posible crear tu cuenta.')
+      throw requestError
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function hydrateSession(session) {
+    error.value = ''
+
+    if (!session?.token) {
+      throw new Error('No recibimos un token valido desde el flujo externo.')
+    }
+
+    setToken(session.token)
+
+    if (session.customer) {
+      setUser(session.customer)
+    } else {
+      const customer = await getCurrentCustomer()
+      setUser(customer)
+    }
+
     bootstrapped.value = true
+  }
+
+  async function completeExternalAuth(session) {
+    loading.value = true
+
+    try {
+      await hydrateSession(session)
+    } catch (requestError) {
+      clearSession()
+      error.value = getApiErrorMessage(requestError, 'No fue posible completar el acceso.')
+      throw requestError
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function refreshProfile() {
+    const customer = await getCurrentCustomer()
+    setUser(customer)
+    return customer
+  }
+
+  async function saveProfile(payload) {
+    savingProfile.value = true
+    error.value = ''
+
+    try {
+      const customer = await updateCustomerProfile(payload)
+      setUser(customer)
+      return customer
+    } catch (requestError) {
+      error.value = getApiErrorMessage(requestError, 'No fue posible actualizar tu perfil.')
+      throw requestError
+    } finally {
+      savingProfile.value = false
+    }
+  }
+
+  async function logout() {
+    try {
+      await logoutCustomer()
+    } finally {
+      clearSession()
+      bootstrapped.value = true
+    }
   }
 
   return {
@@ -119,13 +212,21 @@ export const useAuthStore = defineStore('auth', () => {
     bootstrapLoading,
     bootstrapped,
     error,
+    savingProfile,
+    authMode,
     isAuthenticated,
+    isUsingMockBackend,
     customerName,
     customerFirstName,
     customerInitials,
     profilePhotoUrl,
     bootstrap,
     login,
+    register,
+    hydrateSession,
+    completeExternalAuth,
+    refreshProfile,
+    saveProfile,
     logout,
   }
 })

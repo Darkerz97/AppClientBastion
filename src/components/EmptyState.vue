@@ -13,7 +13,7 @@ defineProps({
 
 <template>
   <section class="state-card state-card--empty">
-    <div class="state-card__icon">○</div>
+    <div class="state-card__icon">CB</div>
     <h3>{{ title }}</h3>
     <p>{{ message }}</p>
     <slot />
