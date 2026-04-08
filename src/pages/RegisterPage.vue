@@ -112,6 +112,10 @@ async function submitRegister() {
       </form>
 
       <p class="login-helper">
+        <RouterLink class="text-link" to="/forgot-password">Olvide mi password</RouterLink>
+      </p>
+
+      <p class="login-helper">
         ¿Ya tienes cuenta?
         <RouterLink class="text-link" to="/login">Inicia sesion</RouterLink>
       </p>

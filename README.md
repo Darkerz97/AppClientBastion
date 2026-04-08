@@ -66,6 +66,7 @@ Para que el flujo funcione en produccion:
 La app ya incluye el flujo mobile para recuperacion de password:
 
 - link `Olvide mi password` desde login
+- link de recuperacion tambien visible desde registro
 - pantalla de recuperacion que abre `/recuperar-contrasena`
 - soporte para abrir enlaces de `/restablecer-contrasena/{token}` desde una ruta mobile equivalente
 
