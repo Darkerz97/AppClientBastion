@@ -157,6 +157,11 @@ img {
   text-align: center;
 }
 
+.login-helper--left {
+  margin-top: -6px;
+  text-align: left;
+}
+
 .page-title {
   margin: 0;
   font-size: clamp(2rem, 8vw, 2.7rem);

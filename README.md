@@ -59,6 +59,17 @@ Para que el flujo funcione en produccion:
 - ese mismo URL debe existir en Google Cloud como `Authorized redirect URI`
 - despues de autenticar, el backend debe redirigir a la app con el token del jugador usando el esquema `com.cardbastion.clientes://auth/callback`
 - Android necesita `@capacitor/app` para capturar el deep link y `@capacitor/browser` para abrir el flujo externo
+- para evitar perder el callback mobile en algunos navegadores/hosts, el backend debe conservar temporalmente el `redirect_uri` mobile incluso si la sesion web se corta durante el roundtrip con Google
+
+## Recuperacion De Password
+
+La app ya incluye el flujo mobile para recuperacion de password:
+
+- link `Olvide mi password` desde login
+- pantalla de recuperacion que abre `/recuperar-contrasena`
+- soporte para abrir enlaces de `/restablecer-contrasena/{token}` desde una ruta mobile equivalente
+
+La operacion final sigue ocurriendo en el sitio seguro del servidor para reutilizar el flujo web protegido existente.
 
 ## Estado Actual Del Backend Remoto
 
@@ -93,6 +104,7 @@ Y para Google en mobile:
 
 - aceptar `redirect_uri` en `/auth/google`
 - validar el callback mobile
+- conservar temporalmente el `redirect_uri` mobile aunque la sesion se pierda en el roundtrip con Google
 - redirigir a `com.cardbastion.clientes://auth/callback?...` con `token` o `error`
 
 ## Build Android

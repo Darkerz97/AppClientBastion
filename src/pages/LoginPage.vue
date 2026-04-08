@@ -81,6 +81,10 @@ async function continueWithGoogle(mode) {
           />
         </div>
 
+        <p class="login-helper login-helper--left">
+          <RouterLink class="text-link" to="/forgot-password">Olvide mi password</RouterLink>
+        </p>
+
         <div v-if="localError || authStore.error" class="error-banner">
           {{ localError || authStore.error }}
         </div>

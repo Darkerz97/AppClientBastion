@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ArticlesPage from '../pages/ArticlesPage.vue'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue'
 import HomePage from '../pages/HomePage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import OrdersPage from '../pages/OrdersPage.vue'
 import PreordersPage from '../pages/PreordersPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import RegisterPage from '../pages/RegisterPage.vue'
+import ResetPasswordPage from '../pages/ResetPasswordPage.vue'
 import TournamentsPage from '../pages/TournamentsPage.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -24,6 +26,23 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: RegisterPage,
+      meta: {
+        guestOnly: true,
+      },
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordPage,
+      meta: {
+        guestOnly: true,
+      },
+    },
+    {
+      path: '/reset-password/:token?',
+      alias: ['/restablecer-contrasena/:token?'],
+      name: 'reset-password',
+      component: ResetPasswordPage,
       meta: {
         guestOnly: true,
       },

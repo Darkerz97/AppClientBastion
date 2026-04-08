@@ -58,10 +58,27 @@ Eso explica que la app muestre:
 Flujo esperado por la app:
 
 - abrir `https://www.cardbastion.com/auth/google?platform=capacitor&redirect_uri=com.cardbastion.clientes://auth/callback`
+- el backend debe conservar ese `redirect_uri` mobile hasta terminar el callback, incluso si el navegador o el hosting no preservan la sesion original
 - si el backend autentica correctamente, responder con redirect a:
   - `com.cardbastion.clientes://auth/callback?token=...&name=...&email=...&phone=...&profile_photo_url=...`
 - si falla, responder con redirect a:
   - `com.cardbastion.clientes://auth/callback?error=...`
+
+## Recuperacion De Password
+
+La app ya soporta estas rutas web existentes del servidor para recuperacion:
+
+- `GET /recuperar-contrasena`
+- `POST /recuperar-contrasena`
+- `GET /restablecer-contrasena/{token}`
+- `POST /restablecer-contrasena`
+
+Del lado mobile:
+
+- `/forgot-password` abre el flujo oficial del servidor
+- `/reset-password/:token?` permite continuar desde un enlace recibido por correo
+
+No se requiere API JSON nueva para password reset si el flujo web del servidor sigue disponible.
 
 ## Nota Operativa
 
