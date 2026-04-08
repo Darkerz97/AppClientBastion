@@ -7,20 +7,39 @@ const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 const nativeApiBaseUrl = import.meta.env.VITE_API_NATIVE_BASE_URL || 'https://www.cardbastion.com/api'
 const configuredSiteBaseUrl = import.meta.env.VITE_PUBLIC_SITE_URL || '/'
 
-const resolvedApiBaseUrl =
+export const RESOLVED_API_BASE_URL =
   Capacitor.isNativePlatform() && !/^https?:\/\//i.test(configuredApiBaseUrl)
     ? nativeApiBaseUrl
     : configuredApiBaseUrl
 
-const resolvedSiteBaseUrl =
+export const RESOLVED_SITE_BASE_URL =
   Capacitor.isNativePlatform() && !/^https?:\/\//i.test(configuredSiteBaseUrl)
     ? 'https://www.cardbastion.com'
     : configuredSiteBaseUrl === '/'
       ? ''
       : configuredSiteBaseUrl
 
+function ensureTrailingSlash(value) {
+  return value.endsWith('/') ? value : `${value}/`
+}
+
+export function buildAbsoluteUrl(baseUrl, path) {
+  if (!baseUrl || /^https?:\/\//i.test(path)) {
+    return path
+  }
+
+  if (/^https?:\/\//i.test(baseUrl)) {
+    return new URL(path.replace(/^\/+/, ''), ensureTrailingSlash(baseUrl)).toString()
+  }
+
+  const normalizedBase = baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`
+  const normalizedPath = path.replace(/^\/+/, '')
+
+  return `${ensureTrailingSlash(normalizedBase)}${normalizedPath}`
+}
+
 const api = axios.create({
-  baseURL: resolvedApiBaseUrl,
+  baseURL: RESOLVED_API_BASE_URL,
   timeout: 15000,
   headers: {
     Accept: 'application/json',
@@ -29,7 +48,7 @@ const api = axios.create({
 })
 
 export const siteApi = axios.create({
-  baseURL: resolvedSiteBaseUrl,
+  baseURL: RESOLVED_SITE_BASE_URL,
   timeout: 15000,
   headers: {
     Accept: 'application/json',

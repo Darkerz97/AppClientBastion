@@ -1,12 +1,12 @@
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
+import { RESOLVED_SITE_BASE_URL, buildAbsoluteUrl } from './axios'
 
-const publicSiteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || 'https://www.cardbastion.com'
 const appSchemeCallback =
   import.meta.env.VITE_APP_AUTH_CALLBACK_URL || 'com.cardbastion.clientes://auth/callback'
 
 export function getGoogleAuthUrl(mode = 'login') {
-  const baseUrl = new URL('/auth/google', publicSiteUrl)
+  const baseUrl = new URL(buildAbsoluteUrl(RESOLVED_SITE_BASE_URL || 'https://www.cardbastion.com', '/auth/google'))
 
   if (mode === 'register') {
     baseUrl.searchParams.set('intent', 'register')

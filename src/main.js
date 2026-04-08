@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { createPinia } from 'pinia'
 import { registerSW } from 'virtual:pwa-register'
@@ -9,7 +10,17 @@ import router from './router'
 import { useAuthStore } from './stores/auth'
 import { parseAuthCallbackUrl } from './utils/authCallback'
 
-registerSW({ immediate: true })
+if (Capacitor.isNativePlatform()) {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        registration.unregister().catch(() => {})
+      })
+    })
+  }
+} else {
+  registerSW({ immediate: true })
+}
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -19,12 +30,20 @@ app.use(router)
 
 const authStore = useAuthStore()
 
-CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+let lastHandledAuthUrl = ''
+
+async function handleAuthCallback(url) {
+  if (!url || url === lastHandledAuthUrl) {
+    return
+  }
+
   const payload = parseAuthCallbackUrl(url)
 
   if (!payload) {
     return
   }
+
+  lastHandledAuthUrl = url
 
   await Browser.close().catch(() => {})
 
@@ -44,8 +63,18 @@ CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
   } catch {
     await router.replace('/login')
   }
+}
+
+CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+  await handleAuthCallback(url)
 })
 
 authStore.bootstrap().finally(() => {
   app.mount('#app')
+
+  CapacitorApp.getLaunchUrl()
+    .then(async ({ url }) => {
+      await handleAuthCallback(url)
+    })
+    .catch(() => {})
 })

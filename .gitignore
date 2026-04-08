@@ -15,6 +15,7 @@ dist-ssr
 dev-dist
 android/.gradle-user
 android/.android-user
+android/app/.android-user
 android/.gradle
 android/build
 android/local.properties

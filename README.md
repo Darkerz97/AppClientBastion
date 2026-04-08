@@ -60,6 +60,51 @@ Para que el flujo funcione en produccion:
 - despues de autenticar, el backend debe redirigir a la app con el token del jugador usando el esquema `com.cardbastion.clientes://auth/callback`
 - Android necesita `@capacitor/app` para capturar el deep link y `@capacitor/browser` para abrir el flujo externo
 
+## Estado Actual Del Backend Remoto
+
+Se reviso el repo `Darkerz97/WebCardBastion` en GitHub y la rama `main` publica hoy:
+
+- no expone las rutas `/api/player/...` que consume esta app
+- no contiene el controlador API de jugador esperado por la app cliente
+- mantiene Google auth en modo web tradicional, sin callback mobile a `com.cardbastion.clientes://auth/callback`
+
+Por eso, cuando la app usa `VITE_PLAYER_API_MODE=api`, el error:
+
+```text
+La ruta API no existe en el servidor configurado.
+```
+
+es consistente con el backend remoto actual.
+
+Antes de esperar login real desde la app, el backend desplegado en `www.cardbastion.com` debe implementar:
+
+- `POST /api/player/auth/login`
+- `POST /api/player/auth/register`
+- `POST /api/player/auth/logout`
+- `GET /api/player/me`
+- `PUT|POST /api/player/me`
+- `GET /api/player/dashboard`
+- `GET /api/player/orders`
+- `GET /api/player/tournaments`
+- `POST /api/player/tournaments/{tournament}`
+- `GET /api/player/preorders`
+
+Y para Google en mobile:
+
+- aceptar `redirect_uri` en `/auth/google`
+- validar el callback mobile
+- redirigir a `com.cardbastion.clientes://auth/callback?...` con `token` o `error`
+
+## Build Android
+
+Para compilar `debug` en este proyecto, Gradle necesita un keystore debug accesible en:
+
+```text
+android/app/.android-user/debug.keystore
+```
+
+Ese directorio es local y ya esta ignorado en git. Si el APK no se genera aunque `assembleDebug` termine, revisa primero esa ruta.
+
 ## Desarrollo
 
 ```powershell

@@ -3,7 +3,14 @@ export function parseAuthCallbackUrl(rawUrl) {
     return null
   }
 
-  const url = new URL(rawUrl)
+  let url
+
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    return null
+  }
+
   const error = url.searchParams.get('error')
 
   if (error) {
