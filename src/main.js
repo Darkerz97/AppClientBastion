@@ -19,14 +19,24 @@ app.use(router)
 const authStore = useAuthStore()
 
 CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-  const session = parseAuthCallbackUrl(url)
+  const payload = parseAuthCallbackUrl(url)
 
-  if (!session) {
+  if (!payload) {
+    return
+  }
+
+  if (payload.error) {
+    await router.replace({
+      path: '/login',
+      query: {
+        error: payload.error,
+      },
+    })
     return
   }
 
   try {
-    await authStore.completeExternalAuth(session)
+    await authStore.completeExternalAuth(payload)
     await router.replace('/')
   } catch {
     await router.replace('/login')

@@ -14,9 +14,11 @@ dist-ssr
 .env
 dev-dist
 android/.gradle-user
+android/.android-user
 android/.gradle
 android/build
 android/local.properties
+backend-webcardbastion/
 
 # Editor directories and files
 .vscode/*

@@ -10,10 +10,12 @@
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
     "android:build": "npm run build && npx cap sync android",
-    "android:apk:debug": "cd android && set \"GRADLE_USER_HOME=.gradle-user\" && .\\gradlew.bat assembleDebug"
+    "android:apk:debug": "cd android && if not exist .android-user mkdir .android-user && if not exist .gradle-user mkdir .gradle-user && set \"ANDROID_USER_HOME=.android-user\" && set \"GRADLE_USER_HOME=.gradle-user\" && .\\gradlew.bat assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "axios": "^1.14.0",

@@ -16,6 +16,10 @@ const form = reactive({
 
 const localError = ref('')
 
+if (typeof route.query.error === 'string' && route.query.error.trim()) {
+  localError.value = route.query.error
+}
+
 async function submitLogin() {
   localError.value = ''
 

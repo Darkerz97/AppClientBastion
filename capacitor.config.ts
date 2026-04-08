@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Card Bastion',
   webDir: 'dist',
   bundledWebRuntime: false,
+  server: {
+    androidScheme: 'https',
+  },
 };
 
 export default config;

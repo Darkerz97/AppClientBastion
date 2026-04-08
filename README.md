@@ -40,9 +40,25 @@ VITE_PLAYER_ORDERS_PATH=/api/player/orders
 VITE_PLAYER_TOURNAMENTS_PATH=/api/player/tournaments
 VITE_PLAYER_TOURNAMENT_REGISTER_PATH=/api/player/tournaments/:tournamentId
 VITE_PLAYER_PREORDERS_PATH=/api/player/preorders
+VITE_APP_AUTH_CALLBACK_URL=com.cardbastion.clientes://auth/callback
 ```
 
 Los endpoints faltantes y el contrato esperado estan documentados en `docs/backend_endpoints_needed_for_player_app.md`.
+
+## Google Login En Android
+
+La app abre Google auth en el navegador del sistema y espera volver por deep link a:
+
+```env
+VITE_APP_AUTH_CALLBACK_URL=com.cardbastion.clientes://auth/callback
+```
+
+Para que el flujo funcione en produccion:
+
+- el backend web debe recibir el callback de Google en `https://www.cardbastion.com/auth/google/callback`
+- ese mismo URL debe existir en Google Cloud como `Authorized redirect URI`
+- despues de autenticar, el backend debe redirigir a la app con el token del jugador usando el esquema `com.cardbastion.clientes://auth/callback`
+- Android necesita `@capacitor/app` para capturar el deep link y `@capacitor/browser` para abrir el flujo externo
 
 ## Desarrollo
 

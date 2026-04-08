@@ -4,6 +4,14 @@ export function parseAuthCallbackUrl(rawUrl) {
   }
 
   const url = new URL(rawUrl)
+  const error = url.searchParams.get('error')
+
+  if (error) {
+    return {
+      error,
+    }
+  }
+
   const token = url.searchParams.get('token')
 
   if (!token) {
