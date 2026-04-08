@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 import { createPinia } from 'pinia'
 import { registerSW } from 'virtual:pwa-register'
 import './style.css'
@@ -24,6 +25,8 @@ CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
   if (!payload) {
     return
   }
+
+  await Browser.close().catch(() => {})
 
   if (payload.error) {
     await router.replace({
