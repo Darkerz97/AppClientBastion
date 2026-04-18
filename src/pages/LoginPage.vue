@@ -25,7 +25,7 @@ async function submitLogin() {
 
   try {
     await authStore.login(form)
-    router.push(`${route.query.redirect || '/'}`)
+    router.push(`${route.query.redirect || '/profile'}`)
   } catch (error) {
     localError.value = authStore.error || error?.message || 'No fue posible iniciar sesion.'
   }

@@ -1,11 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import DataModeNotice from '../components/DataModeNotice.vue'
 import AppHeader from '../components/AppHeader.vue'
 import Avatar from '../components/Avatar.vue'
+import DataModeNotice from '../components/DataModeNotice.vue'
 import LoadingState from '../components/LoadingState.vue'
+import TierProgressCard from '../components/TierProgressCard.vue'
+import { getTierProgress } from '../services/tiersService'
 import { useAuthStore } from '../stores/auth'
+import { formatCurrency } from '../utils/formatters'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -13,6 +16,7 @@ const localError = ref('')
 const localSuccess = ref('')
 const fileInput = ref(null)
 const previewUrl = ref('')
+const tierProgress = ref({})
 
 const form = reactive({
   name: '',
@@ -33,18 +37,15 @@ watch(
 )
 
 const email = computed(() => authStore.user?.email || 'Sin correo disponible')
-const avatarPreview = computed(() => {
-  if (form.removeProfilePhoto) {
-    return ''
-  }
-
-  return previewUrl.value || authStore.profilePhotoUrl
-})
-
-const profileRows = computed(() => [
+const avatarPreview = computed(() => (form.removeProfilePhoto ? '' : previewUrl.value || authStore.profilePhotoUrl))
+const accountRows = computed(() => [
   { label: 'Email', value: email.value },
-  { label: 'Rol', value: authStore.user?.role || 'player' },
-  { label: 'Cuenta activa', value: authStore.user?.active ? 'Si' : 'No' },
+  { label: 'Telefono', value: authStore.user?.phone || 'Sin telefono' },
+  { label: 'Estado de cuenta', value: authStore.user?.accountStatus || 'Sin datos' },
+  { label: 'Tier actual', value: authStore.user?.tierName || tierProgress.value.currentTier?.name || 'Bronce' },
+  { label: 'Puntos actuales', value: `${authStore.user?.rewardPoints || 0}` },
+  { label: 'Credito disponible', value: formatCurrency(authStore.user?.availableCredit) },
+  { label: 'Compras registradas', value: `${authStore.user?.salesCount || 0}` },
 ])
 
 function onFileChange(event) {
@@ -71,8 +72,14 @@ async function submitProfile() {
   localError.value = ''
   localSuccess.value = ''
 
+  if (!form.name.trim()) {
+    localError.value = 'Tu nombre es obligatorio.'
+    return
+  }
+
   try {
     await authStore.saveProfile(form)
+    await authStore.refreshProfile()
     localSuccess.value = 'Perfil actualizado correctamente.'
     form.profilePhotoFile = null
     form.removeProfilePhoto = false
@@ -90,6 +97,10 @@ async function handleLogout() {
   router.replace('/login')
 }
 
+getTierProgress().then((data) => {
+  tierProgress.value = data
+}).catch(() => {})
+
 onBeforeUnmount(() => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
@@ -101,78 +112,80 @@ onBeforeUnmount(() => {
   <section class="page-section">
     <AppHeader
       title="Tu perfil"
-      subtitle="Informacion personal y configuracion de tu cuenta."
+      subtitle="Informacion personal, estado de cuenta y beneficios."
       :avatar-name="authStore.customerName"
       :avatar-src="authStore.profilePhotoUrl"
     />
 
     <DataModeNotice :mode="authStore.authMode" />
 
-    <LoadingState
-      v-if="authStore.bootstrapLoading"
-      title="Cargando perfil"
-      message="Estamos preparando tu informacion."
-    />
+    <LoadingState v-if="authStore.bootstrapLoading" title="Cargando perfil" message="Estamos preparando tu informacion." />
 
-    <section v-else class="premium-card profile-card">
-      <div class="profile-card__hero">
-        <Avatar :name="authStore.customerName" :src="avatarPreview" size="xl" />
-        <div class="profile-card__identity">
-          <h2>{{ authStore.customerName }}</h2>
-          <p>{{ email }}</p>
-        </div>
-      </div>
-
-      <form class="stack" @submit.prevent="submitProfile">
-        <div class="field">
-          <label for="profile-name">Nombre</label>
-          <input id="profile-name" v-model.trim="form.name" type="text" required />
+    <template v-else>
+      <section class="premium-card profile-card">
+        <div class="profile-card__hero">
+          <Avatar :name="authStore.customerName" :src="avatarPreview" size="xl" />
+          <div class="profile-card__identity">
+            <h2>{{ authStore.customerName }}</h2>
+            <p>{{ email }}</p>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="profile-phone">Telefono</label>
-          <input id="profile-phone" v-model.trim="form.phone" type="tel" placeholder="555-010-2026" />
+        <form class="stack" @submit.prevent="submitProfile">
+          <div class="field">
+            <label for="profile-name">Nombre</label>
+            <input id="profile-name" v-model.trim="form.name" type="text" required />
+          </div>
+
+          <div class="field">
+            <label for="profile-phone">Telefono</label>
+            <input id="profile-phone" v-model.trim="form.phone" type="tel" placeholder="555-010-2026" />
+          </div>
+
+          <div class="field">
+            <label for="profile-photo">Foto de perfil</label>
+            <input id="profile-photo" ref="fileInput" accept="image/*" type="file" @change="onFileChange" />
+          </div>
+
+          <label class="checkbox-row">
+            <input v-model="form.removeProfilePhoto" type="checkbox" />
+            <span>Quitar foto actual</span>
+          </label>
+
+          <div v-if="localError || authStore.error" class="error-banner">
+            {{ localError || authStore.error }}
+          </div>
+
+          <div v-if="localSuccess" class="success-banner">
+            {{ localSuccess }}
+          </div>
+
+          <button class="button" type="submit" :disabled="authStore.savingProfile">
+            {{ authStore.savingProfile ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </form>
+      </section>
+
+      <TierProgressCard :progress="tierProgress" />
+
+      <section class="surface-card section-card">
+        <div class="section-card__header">
+          <div>
+            <h2 class="section-card__title">Estado de tu cuenta</h2>
+            <p class="section-card__text">Resumen corto pero util para soporte y seguimiento del cliente.</p>
+          </div>
         </div>
-
-        <div class="field">
-          <label for="profile-photo">Foto de perfil</label>
-          <input
-            id="profile-photo"
-            ref="fileInput"
-            accept="image/*"
-            type="file"
-            @change="onFileChange"
-          />
+        <div class="profile-grid">
+          <div v-for="row in accountRows" :key="row.label" class="profile-row">
+            <span>{{ row.label }}</span>
+            <strong>{{ row.value }}</strong>
+          </div>
         </div>
-
-        <label class="checkbox-row">
-          <input v-model="form.removeProfilePhoto" type="checkbox" />
-          <span>Quitar foto actual</span>
-        </label>
-
-        <div v-if="localError || authStore.error" class="error-banner">
-          {{ localError || authStore.error }}
-        </div>
-
-        <div v-if="localSuccess" class="success-banner">
-          {{ localSuccess }}
-        </div>
-
-        <button class="button" type="submit" :disabled="authStore.savingProfile">
-          {{ authStore.savingProfile ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
-      </form>
-
-      <div class="profile-grid">
-        <div v-for="row in profileRows" :key="row.label" class="profile-row">
-          <span>{{ row.label }}</span>
-          <strong>{{ row.value }}</strong>
-        </div>
-      </div>
+      </section>
 
       <button class="ghost-button profile-card__logout" type="button" @click="handleLogout">
         Cerrar sesion
       </button>
-    </section>
+    </template>
   </section>
 </template>

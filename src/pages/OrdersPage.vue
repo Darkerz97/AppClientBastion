@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import DataModeNotice from '../components/DataModeNotice.vue'
+import { RouterLink } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
+import DataModeNotice from '../components/DataModeNotice.vue'
 import EmptyState from '../components/EmptyState.vue'
 import LoadingState from '../components/LoadingState.vue'
+import OrderSummaryCard from '../components/OrderSummaryCard.vue'
 import StatCard from '../components/StatCard.vue'
 import { getCustomerOrders } from '../services/ordersService'
 import { useAuthStore } from '../stores/auth'
-import { formatCurrency, formatDateTime } from '../utils/formatters'
+import { formatCurrency } from '../utils/formatters'
 import { toServiceError } from '../utils/serviceError'
 
 const authStore = useAuthStore()
@@ -15,18 +17,8 @@ const loading = ref(true)
 const error = ref('')
 const orders = ref([])
 
-const orderCount = computed(() => orders.value.length)
-const lifetimeTotal = computed(() => orders.value.reduce((sum, order) => sum + order.total, 0))
-
-function summaryItems(order) {
-  if (!order.items.length) {
-    return 'Sin desglose de productos'
-  }
-
-  return order.items
-    .map((item) => `${item.quantity} x ${item.name}`)
-    .join(', ')
-}
+const totalAmount = computed(() => orders.value.reduce((sum, order) => sum + order.total, 0))
+const totalRewards = computed(() => orders.value.reduce((sum, order) => sum + order.rewardsGenerated, 0))
 
 async function loadOrders() {
   loading.value = true
@@ -47,8 +39,8 @@ onMounted(loadOrders)
 <template>
   <section class="page-section">
     <AppHeader
-      title="Mis compras"
-      subtitle="Tus pedidos asociados al storefront de Card Bastion."
+      title="Compras"
+      subtitle="Historial de tickets, pagos y recompensas generadas."
       :avatar-name="authStore.customerName"
       :avatar-src="authStore.profilePhotoUrl"
     >
@@ -64,60 +56,39 @@ onMounted(loadOrders)
     <DataModeNotice :mode="authStore.authMode" />
 
     <section class="metric-grid">
-      <StatCard label="Pedidos" :value="`${orderCount}`" />
-      <StatCard label="Total historico" :value="formatCurrency(lifetimeTotal)" />
+      <StatCard label="Compras" :value="`${orders.length}`" />
+      <StatCard label="Monto acumulado" :value="formatCurrency(totalAmount)" />
+      <StatCard label="Puntos generados" :value="`${totalRewards}`" />
+      <StatCard label="Credito actual" :value="formatCurrency(authStore.user?.availableCredit)" />
     </section>
 
-    <LoadingState
-      v-if="loading"
-      title="Cargando compras"
-      message="Estamos consultando tu historial de pedidos."
-    />
+    <LoadingState v-if="loading" title="Cargando compras" message="Estamos consultando tu historial mas reciente." />
 
-    <EmptyState
-      v-else-if="error"
-      title="No fue posible mostrar tus compras"
-      :message="error"
-    >
-      <div class="inline-actions state-card__actions">
-        <button class="ghost-button" type="button" @click="loadOrders">Intentar de nuevo</button>
-      </div>
-    </EmptyState>
+    <EmptyState v-else-if="error" title="No fue posible mostrar las compras" :message="error" />
 
-    <EmptyState
-      v-else-if="!orders.length"
-      title="Aun no tienes compras registradas"
-      message="Cuando el backend exponga tus ventas del storefront, apareceran aqui con detalle."
-    />
+    <EmptyState v-else-if="!orders.length" title="Sin compras registradas" message="Tu historial de compras aparecera aqui con sus recompensas relacionadas." />
 
     <section v-else class="list">
-      <article v-for="order in orders" :key="order.id" class="premium-card preorder-card">
-        <div class="preorder-top">
-          <div>
-            <p class="preorder-label">Pedido #{{ order.id }}</p>
-            <h2 class="preorder-name">{{ formatCurrency(order.total) }}</h2>
+      <div v-for="order in orders" :key="order.id">
+        <OrderSummaryCard :order="order" />
+        <div class="surface-card section-card section-card--tight">
+          <div class="data-grid order-grid">
+            <div class="data-point">
+              <span>Metodo</span>
+              <strong>{{ order.paymentMethod || 'Por confirmar' }}</strong>
+            </div>
+            <div class="data-point">
+              <span>Canal</span>
+              <strong>{{ order.channel }}</strong>
+            </div>
+            <div class="data-point">
+              <span>Items</span>
+              <strong>{{ order.items.length }}</strong>
+            </div>
           </div>
-
-          <span class="status-pill is-default">{{ order.status }}</span>
+          <RouterLink class="header-link-button" :to="`/orders/${order.id}`">Ver detalle</RouterLink>
         </div>
-
-        <div class="data-grid order-grid">
-          <div class="data-point">
-            <span>Fecha</span>
-            <strong>{{ formatDateTime(order.soldAt) }}</strong>
-          </div>
-          <div class="data-point">
-            <span>Canal</span>
-            <strong>{{ order.channel }}</strong>
-          </div>
-          <div class="data-point">
-            <span>Articulos</span>
-            <strong>{{ order.items.length }}</strong>
-          </div>
-        </div>
-
-        <p class="muted">{{ summaryItems(order) }}</p>
-      </article>
+      </div>
     </section>
   </section>
 </template>

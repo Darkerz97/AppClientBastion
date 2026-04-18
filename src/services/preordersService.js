@@ -1,6 +1,6 @@
-import { normalizePreorder } from '../types/preorder'
+import { normalizePreorder, normalizePreorderDetail } from '../types/preorder'
 import { PLAYER_API_ENDPOINTS, PLAYER_API_MODE, hasPlayerEndpoint } from './playerClientConfig'
-import { mockGetPreorders } from './playerMockBackend'
+import { mockGetPreorderDetail, mockGetPreorders } from './playerMockBackend'
 import { requestPlayerEndpoint } from './playerHttp'
 import { createMissingEndpointError } from '../utils/serviceError'
 
@@ -26,4 +26,18 @@ export async function getCustomerPreorders() {
 
   const { data } = await requestPlayerEndpoint('get', PLAYER_API_ENDPOINTS.preorders)
   return pickPreorders(data)
+}
+
+export async function getPreorderDetail(preorderId) {
+  if (PLAYER_API_MODE !== 'api') {
+    return normalizePreorderDetail(await mockGetPreorderDetail(preorderId) || {})
+  }
+
+  if (!hasPlayerEndpoint('preorderDetail')) {
+    throw createMissingEndpointError('detalle de preventa')
+  }
+
+  const endpoint = PLAYER_API_ENDPOINTS.preorderDetail.replace(':preorderId', preorderId)
+  const { data } = await requestPlayerEndpoint('get', endpoint)
+  return normalizePreorderDetail(unwrap(data))
 }

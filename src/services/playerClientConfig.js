@@ -15,9 +15,16 @@ export const PLAYER_API_ENDPOINTS = {
   logout: import.meta.env.VITE_PLAYER_AUTH_LOGOUT_PATH || '',
   dashboard: import.meta.env.VITE_PLAYER_DASHBOARD_PATH || '',
   orders: import.meta.env.VITE_PLAYER_ORDERS_PATH || '',
+  orderDetail: import.meta.env.VITE_PLAYER_ORDER_DETAIL_PATH || '',
   tournaments: import.meta.env.VITE_PLAYER_TOURNAMENTS_PATH || '',
+  tournamentDetail: import.meta.env.VITE_PLAYER_TOURNAMENT_DETAIL_PATH || '',
   tournamentRegister: import.meta.env.VITE_PLAYER_TOURNAMENT_REGISTER_PATH || '',
   preorders: import.meta.env.VITE_PLAYER_PREORDERS_PATH || '',
+  preorderDetail: import.meta.env.VITE_PLAYER_PREORDER_DETAIL_PATH || '',
+  rewards: import.meta.env.VITE_PLAYER_REWARDS_PATH || '',
+  tiers: import.meta.env.VITE_PLAYER_TIERS_PATH || '',
+  notifications: import.meta.env.VITE_PLAYER_NOTIFICATIONS_PATH || '',
+  markNotificationRead: import.meta.env.VITE_PLAYER_NOTIFICATION_READ_PATH || '',
 }
 
 export function hasPlayerEndpoint(key) {

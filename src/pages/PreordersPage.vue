@@ -1,13 +1,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import DataModeNotice from '../components/DataModeNotice.vue'
+import { RouterLink } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
+import DataModeNotice from '../components/DataModeNotice.vue'
 import EmptyState from '../components/EmptyState.vue'
 import LoadingState from '../components/LoadingState.vue'
+import PaymentStatusPill from '../components/PaymentStatusPill.vue'
+import PreorderSummaryCard from '../components/PreorderSummaryCard.vue'
 import StatCard from '../components/StatCard.vue'
 import { getCustomerPreorders } from '../services/preordersService'
 import { useAuthStore } from '../stores/auth'
-import { formatCurrency, formatShortDate } from '../utils/formatters'
+import { formatCurrency } from '../utils/formatters'
 import { toServiceError } from '../utils/serviceError'
 
 const loading = ref(true)
@@ -16,9 +19,8 @@ const preorders = ref([])
 const authStore = useAuthStore()
 
 const totalCount = computed(() => preorders.value.length)
-const pendingTotal = computed(() =>
-  preorders.value.reduce((sum, preorder) => sum + preorder.pending, 0),
-)
+const pendingTotal = computed(() => preorders.value.reduce((sum, preorder) => sum + preorder.pending, 0))
+const activePreorders = computed(() => preorders.value.filter((preorder) => preorder.pending > 0 || preorder.deliveryStatus !== 'Entregada'))
 
 async function loadPreorders() {
   loading.value = true
@@ -40,7 +42,7 @@ onMounted(loadPreorders)
   <section class="page-section">
     <AppHeader
       title="Tus preventas"
-      subtitle="Sigue apartados, pagos, saldo pendiente y entrega."
+      subtitle="Apartados activos, pagos, alertas y entregas."
       :avatar-name="authStore.customerName"
       :avatar-src="authStore.profilePhotoUrl"
     >
@@ -56,79 +58,67 @@ onMounted(loadPreorders)
     <DataModeNotice :mode="authStore.authMode" />
 
     <section class="metric-grid">
-      <StatCard label="Preventas activas" :value="`${totalCount}`" />
+      <StatCard label="Preventas activas" :value="`${activePreorders.length}`" />
       <StatCard label="Pendiente acumulado" :value="formatCurrency(pendingTotal)" />
     </section>
 
-    <LoadingState
-      v-if="loading"
-      title="Cargando preventas"
-      message="Estamos consultando tu informacion mas reciente."
-    />
+    <LoadingState v-if="loading" title="Cargando preventas" message="Estamos consultando tu informacion mas reciente." />
 
-    <EmptyState
-      v-else-if="error"
-      title="No fue posible mostrar tus preventas"
-      :message="error"
-    >
+    <EmptyState v-else-if="error" title="No fue posible mostrar tus preventas" :message="error">
       <div class="inline-actions state-card__actions">
         <button class="ghost-button" type="button" @click="loadPreorders">Intentar de nuevo</button>
       </div>
     </EmptyState>
 
-    <EmptyState
-      v-else-if="!preorders.length"
-      title="Aun no tienes preventas"
-      message="Cuando exista el endpoint publico para mis preventas, las veras aqui con pagos y entrega."
-    />
+    <EmptyState v-else-if="!preorders.length" title="Aun no tienes preventas" message="Cuando exista el endpoint publico para mis preventas, las veras aqui con pagos y entrega." />
 
-    <section v-else class="list">
-      <article v-for="preorder in preorders" :key="preorder.id" class="preorder-card premium-card">
-        <div class="preorder-top">
+    <template v-else>
+      <section class="surface-card section-card">
+        <div class="section-card__header">
           <div>
-            <p class="preorder-label">Preventa #{{ preorder.id }}</p>
-            <h2 class="preorder-name">{{ preorder.title }}</h2>
-          </div>
-
-          <span class="status-pill" :class="preorder.pending > 0 ? 'is-partial' : 'is-settled'">
-            {{ preorder.status }}
-          </span>
-        </div>
-
-        <div class="data-grid">
-          <div class="data-point">
-            <span>Total</span>
-            <strong>{{ formatCurrency(preorder.total) }}</strong>
-          </div>
-
-          <div class="data-point">
-            <span>Pagado</span>
-            <strong>{{ formatCurrency(preorder.paid) }}</strong>
-          </div>
-
-          <div class="data-point">
-            <span>Pendiente</span>
-            <strong>{{ formatCurrency(preorder.pending) }}</strong>
+            <h2 class="section-card__title">Preventas que requieren accion</h2>
+            <p class="section-card__text">Se destacan primero las que tienen saldo pendiente o entrega proxima.</p>
           </div>
         </div>
+        <div v-if="activePreorders.length" class="list compact-list">
+          <article v-for="preorder in activePreorders" :key="`active-${preorder.id}`" class="surface-subcard">
+            <div class="row-between">
+              <div>
+                <p class="preorder-label">Preventa #{{ preorder.id }}</p>
+                <h3 class="preorder-name">{{ preorder.title }}</h3>
+              </div>
+              <PaymentStatusPill :status="preorder.status" :pending-amount="preorder.pending" />
+            </div>
+            <p class="muted">
+              {{ preorder.pending > 0 ? `Pago pendiente: ${formatCurrency(preorder.pending)}` : preorder.deliveryStatus }}
+            </p>
+            <RouterLink class="header-link-button" :to="`/preorders/${preorder.id}`">Ver detalle</RouterLink>
+          </article>
+        </div>
+      </section>
 
-        <div class="data-grid preorder-detail-grid">
-          <div class="data-point">
-            <span>Entrega</span>
-            <strong>{{ preorder.deliveryStatus }}</strong>
-          </div>
-
-          <div class="data-point">
-            <span>Fecha</span>
-            <strong>{{ formatShortDate(preorder.createdAt) }}</strong>
-          </div>
-
-          <div class="data-point">
-            <span>Items</span>
-            <strong>{{ preorder.items.length }}</strong>
+      <section class="list">
+        <div v-for="preorder in preorders" :key="preorder.id">
+          <PreorderSummaryCard :preorder="preorder" />
+          <div class="surface-card section-card section-card--tight">
+            <div class="data-grid preorder-detail-grid">
+              <div class="data-point">
+                <span>Pendiente</span>
+                <strong>{{ formatCurrency(preorder.pending) }}</strong>
+              </div>
+              <div class="data-point">
+                <span>Entrega</span>
+                <strong>{{ preorder.deliveryStatus }}</strong>
+              </div>
+              <div class="data-point">
+                <span>Items</span>
+                <strong>{{ preorder.items.length }}</strong>
+              </div>
+            </div>
+            <RouterLink class="header-link-button" :to="`/preorders/${preorder.id}`">Abrir detalle</RouterLink>
           </div>
         </div>
-      </article>
-    </section>
+      </section>
+    </template>
   </section>
 </template>

@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import DataModeNotice from '../components/DataModeNotice.vue'
+import { RouterLink } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
+import DataModeNotice from '../components/DataModeNotice.vue'
 import EmptyState from '../components/EmptyState.vue'
 import LoadingState from '../components/LoadingState.vue'
+import PaymentStatusPill from '../components/PaymentStatusPill.vue'
 import StatCard from '../components/StatCard.vue'
 import { getCustomerTournaments, registerToTournament } from '../services/tournamentsService'
 import { useAuthStore } from '../stores/auth'
@@ -14,8 +16,10 @@ const authStore = useAuthStore()
 const loading = ref(true)
 const savingTournamentId = ref('')
 const error = ref('')
+const success = ref('')
 const tournaments = ref({
   upcoming: [],
+  mine: [],
   history: [],
   stats: {
     attended: 0,
@@ -28,9 +32,7 @@ const tournaments = ref({
   },
 })
 
-const myUpcoming = computed(() =>
-  tournaments.value.upcoming.filter((item) => Boolean(item.myRegistration)),
-)
+const myUpcoming = computed(() => tournaments.value.mine.length ? tournaments.value.mine : tournaments.value.upcoming.filter((item) => Boolean(item.myRegistration)))
 
 async function loadTournaments() {
   loading.value = true
@@ -48,10 +50,12 @@ async function loadTournaments() {
 async function handleRegister(tournamentId) {
   savingTournamentId.value = `${tournamentId}`
   error.value = ''
+  success.value = ''
 
   try {
     await registerToTournament(`${tournamentId}`)
     await loadTournaments()
+    success.value = 'Tu inscripcion se registro. Si sigue pendiente de pago, aqui mismo veras el siguiente paso.'
   } catch (requestError) {
     error.value = toServiceError(requestError, 'No fue posible registrarte al torneo.')
   } finally {
@@ -66,7 +70,7 @@ onMounted(loadTournaments)
   <section class="page-section">
     <AppHeader
       title="Torneos"
-      subtitle="Proximos eventos, registros y tu historial competitivo."
+      subtitle="Eventos proximos, tus inscripciones activas y resultados."
       :avatar-name="authStore.customerName"
       :avatar-src="authStore.profilePhotoUrl"
     >
@@ -85,20 +89,14 @@ onMounted(loadTournaments)
       <StatCard label="Jugados" :value="`${tournaments.stats.attended}`" />
       <StatCard label="Win rate" :value="formatPercent(tournaments.stats.wlRate)" />
       <StatCard label="Wins" :value="`${tournaments.stats.wins}`" />
-      <StatCard label="Racha actual" :value="`${tournaments.stats.winStreak}`" />
+      <StatCard label="Registros activos" :value="`${myUpcoming.length}`" />
     </section>
 
-    <LoadingState
-      v-if="loading"
-      title="Cargando torneos"
-      message="Estamos reuniendo tus proximos eventos y tu historial."
-    />
+    <div v-if="success" class="success-banner">{{ success }}</div>
 
-    <EmptyState
-      v-else-if="error"
-      title="No fue posible mostrar los torneos"
-      :message="error"
-    >
+    <LoadingState v-if="loading" title="Cargando torneos" message="Estamos reuniendo tus proximos eventos y tu historial." />
+
+    <EmptyState v-else-if="error" title="No fue posible mostrar los torneos" :message="error">
       <div class="inline-actions state-card__actions">
         <button class="ghost-button" type="button" @click="loadTournaments">Intentar de nuevo</button>
       </div>
@@ -109,7 +107,7 @@ onMounted(loadTournaments)
         <div class="section-card__header">
           <div>
             <h2 class="section-card__title">Proximos torneos</h2>
-            <p class="section-card__text">Eventos abiertos para registro del jugador.</p>
+            <p class="section-card__text">Eventos con cupo, costo y CTA directo de inscripcion.</p>
           </div>
         </div>
 
@@ -117,12 +115,13 @@ onMounted(loadTournaments)
           <article v-for="tournament in tournaments.upcoming" :key="tournament.id" class="premium-card tournament-card">
             <div class="preorder-top">
               <div>
-                <p class="preorder-label">{{ tournament.format }}</p>
+                <p class="preorder-label">{{ tournament.format }} · {{ tournament.type }}</p>
                 <h3 class="preorder-name">{{ tournament.name }}</h3>
               </div>
-              <span class="status-pill" :class="tournament.myRegistration ? 'is-settled' : 'is-pending'">
-                {{ tournament.myRegistration ? 'Registrado' : tournament.status }}
-              </span>
+              <PaymentStatusPill
+                :status="tournament.myRegistration?.status || tournament.status"
+                :pending-amount="tournament.myRegistration?.paymentPending || 0"
+              />
             </div>
 
             <div class="data-grid tournament-grid">
@@ -135,37 +134,39 @@ onMounted(loadTournaments)
                 <strong>{{ tournament.entryFee == null ? 'Por confirmar' : formatCurrency(tournament.entryFee) }}</strong>
               </div>
               <div class="data-point">
-                <span>Participantes</span>
-                <strong>{{ tournament.registrationsCount }}</strong>
+                <span>Cupo</span>
+                <strong>{{ tournament.registrationsCount }}/{{ tournament.capacity || '-' }}</strong>
               </div>
             </div>
 
-            <button
-              v-if="!tournament.myRegistration"
-              class="button button--inline"
-              type="button"
-              :disabled="savingTournamentId === `${tournament.id}`"
-              @click="handleRegister(tournament.id)"
-            >
-              {{ savingTournamentId === `${tournament.id}` ? 'Registrando...' : 'Inscribirme' }}
-            </button>
+            <p class="muted">{{ tournament.location }}</p>
 
-            <p v-else class="success-copy">Ya cuentas con registro en este torneo.</p>
+            <div class="inline-actions card-actions">
+              <RouterLink class="header-link-button" :to="`/tournaments/${tournament.id}`">Ver detalle</RouterLink>
+              <button
+                v-if="!tournament.myRegistration"
+                class="button button--inline"
+                type="button"
+                :disabled="savingTournamentId === `${tournament.id}`"
+                @click="handleRegister(tournament.id)"
+              >
+                {{ savingTournamentId === `${tournament.id}` ? 'Registrando...' : 'Inscribirme' }}
+              </button>
+              <span v-else class="success-copy">
+                {{ tournament.myRegistration?.label || 'Ya tienes registro activo.' }}
+              </span>
+            </div>
           </article>
         </div>
 
-        <EmptyState
-          v-else
-          title="Sin torneos proximos"
-          message="Cuando el portal publique nuevos eventos apareceran aqui."
-        />
+        <EmptyState v-else title="Sin torneos proximos" message="Cuando el portal publique nuevos eventos apareceran aqui." />
       </section>
 
       <section class="surface-card section-card">
         <div class="section-card__header">
           <div>
             <h2 class="section-card__title">Mis registros activos</h2>
-            <p class="section-card__text">Eventos futuros a los que ya estas inscrito.</p>
+            <p class="section-card__text">Tus siguientes torneos con estado de pago y siguiente paso visible.</p>
           </div>
         </div>
 
@@ -176,24 +177,24 @@ onMounted(loadTournaments)
                 <p class="preorder-label">{{ tournament.format }}</p>
                 <h3 class="preorder-name">{{ tournament.name }}</h3>
               </div>
-              <span class="status-pill is-settled">{{ tournament.myRegistration?.status || 'Registrado' }}</span>
+              <PaymentStatusPill
+                :status="tournament.myRegistration?.status"
+                :pending-amount="tournament.myRegistration?.paymentPending || 0"
+              />
             </div>
-            <p class="muted">{{ formatDateTime(tournament.startsAt) }}</p>
+            <p class="muted">{{ tournament.myRegistration?.notes || formatDateTime(tournament.startsAt) }}</p>
+            <RouterLink class="header-link-button" :to="`/tournaments/${tournament.id}`">Ver seguimiento</RouterLink>
           </article>
         </div>
 
-        <EmptyState
-          v-else
-          title="Sin registros activos"
-          message="Cuando te inscribas a un torneo se mostrara aqui."
-        />
+        <EmptyState v-else title="Sin registros activos" message="Cuando te inscribas a un torneo se mostrara aqui." />
       </section>
 
       <section class="surface-card section-card">
         <div class="section-card__header">
           <div>
             <h2 class="section-card__title">Historial</h2>
-            <p class="section-card__text">Eventos anteriores en los que ya participaste.</p>
+            <p class="section-card__text">Posicion final, record y desempeno cuando el backend lo entregue.</p>
           </div>
         </div>
 
@@ -204,17 +205,16 @@ onMounted(loadTournaments)
                 <p class="preorder-label">{{ tournament.format }}</p>
                 <h3 class="preorder-name">{{ tournament.name }}</h3>
               </div>
-              <span class="status-pill is-default">{{ tournament.myRegistration?.result || tournament.status }}</span>
+              <span class="status-pill is-default">
+                {{ tournament.myRegistration?.finalPosition ? `Top ${tournament.myRegistration.finalPosition}` : tournament.myRegistration?.result || tournament.status }}
+              </span>
             </div>
-            <p class="muted">{{ formatDateTime(tournament.startsAt) }}</p>
+            <p class="muted">{{ tournament.myRegistration?.result || formatDateTime(tournament.startsAt) }}</p>
+            <RouterLink class="header-link-button" :to="`/tournaments/${tournament.id}`">Ver resultado</RouterLink>
           </article>
         </div>
 
-        <EmptyState
-          v-else
-          title="Sin historial registrado"
-          message="Tu participacion en torneos aparecera aqui cuando exista el endpoint publico."
-        />
+        <EmptyState v-else title="Sin historial registrado" message="Tu participacion en torneos aparecera aqui cuando exista el endpoint publico." />
       </section>
     </template>
   </section>

@@ -3,11 +3,16 @@ import ArticlesPage from '../pages/ArticlesPage.vue'
 import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue'
 import HomePage from '../pages/HomePage.vue'
 import LoginPage from '../pages/LoginPage.vue'
+import NotificationsPage from '../pages/NotificationsPage.vue'
+import OrderDetailPage from '../pages/OrderDetailPage.vue'
 import OrdersPage from '../pages/OrdersPage.vue'
+import PreorderDetailPage from '../pages/PreorderDetailPage.vue'
 import PreordersPage from '../pages/PreordersPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import RegisterPage from '../pages/RegisterPage.vue'
+import RewardsPage from '../pages/RewardsPage.vue'
 import ResetPasswordPage from '../pages/ResetPasswordPage.vue'
+import TournamentDetailPage from '../pages/TournamentDetailPage.vue'
 import TournamentsPage from '../pages/TournamentsPage.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -75,6 +80,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/orders/:id',
+      name: 'order-detail',
+      component: OrderDetailPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
       path: '/tournaments',
       name: 'tournaments',
       component: TournamentsPage,
@@ -84,9 +98,45 @@ const router = createRouter({
       },
     },
     {
+      path: '/tournaments/:id',
+      name: 'tournament-detail',
+      component: TournamentDetailPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
       path: '/preorders',
       name: 'preorders',
       component: PreordersPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
+      path: '/preorders/:id',
+      name: 'preorder-detail',
+      component: PreorderDetailPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
+      path: '/rewards',
+      name: 'rewards',
+      component: RewardsPage,
+      meta: {
+        requiresAuth: true,
+        layout: 'app',
+      },
+    },
+    {
+      path: '/notifications',
+      name: 'notifications',
+      component: NotificationsPage,
       meta: {
         requiresAuth: true,
         layout: 'app',
@@ -123,7 +173,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    return { name: 'home' }
+    return { name: 'profile' }
   }
 
   return true

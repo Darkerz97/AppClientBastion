@@ -59,7 +59,7 @@ async function handleAuthCallback(url) {
 
   try {
     await authStore.completeExternalAuth(payload)
-    await router.replace('/')
+    await router.replace('/profile')
   } catch {
     await router.replace('/login')
   }

@@ -1,6 +1,10 @@
-import { normalizeTournament, normalizeTournamentStats } from '../types/tournament'
+import { normalizeTournament, normalizeTournamentDetail, normalizeTournamentStats } from '../types/tournament'
 import { PLAYER_API_ENDPOINTS, PLAYER_API_MODE, hasPlayerEndpoint } from './playerClientConfig'
-import { mockGetTournaments, mockRegisterToTournament } from './playerMockBackend'
+import {
+  mockGetTournamentDetail,
+  mockGetTournaments,
+  mockRegisterToTournament,
+} from './playerMockBackend'
 import { requestPlayerEndpoint } from './playerHttp'
 import { createMissingEndpointError } from '../utils/serviceError'
 
@@ -19,13 +23,15 @@ function normalizeTournamentsResponse(payload) {
     ? data.history.map(normalizeTournament)
     : Array.isArray(data?.attended)
       ? data.attended.map(normalizeTournament)
-      : Array.isArray(data?.mine)
-        ? data.mine.map(normalizeTournament)
-        : []
+      : []
+  const mine = Array.isArray(data?.mine)
+    ? data.mine.map(normalizeTournament)
+    : upcoming.filter((item) => item.myRegistration)
 
   return {
     upcoming,
     history,
+    mine,
     stats: normalizeTournamentStats(data?.stats || data?.player_stats || {}),
   }
 }
@@ -41,6 +47,20 @@ export async function getCustomerTournaments() {
 
   const { data } = await requestPlayerEndpoint('get', PLAYER_API_ENDPOINTS.tournaments)
   return normalizeTournamentsResponse(data)
+}
+
+export async function getTournamentDetail(tournamentId) {
+  if (PLAYER_API_MODE !== 'api') {
+    return normalizeTournamentDetail(await mockGetTournamentDetail(tournamentId) || {})
+  }
+
+  if (!hasPlayerEndpoint('tournamentDetail')) {
+    throw createMissingEndpointError('detalle de torneo')
+  }
+
+  const endpoint = PLAYER_API_ENDPOINTS.tournamentDetail.replace(':tournamentId', tournamentId)
+  const { data } = await requestPlayerEndpoint('get', endpoint)
+  return normalizeTournamentDetail(unwrap(data))
 }
 
 export async function registerToTournament(tournamentId) {

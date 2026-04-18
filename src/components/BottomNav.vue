@@ -40,6 +40,15 @@ import { RouterLink } from 'vue-router'
       <span>Preventas</span>
     </RouterLink>
 
+    <RouterLink class="nav-link" to="/rewards">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2 9.4 7.26 3.6 8.1l4.2 4.09-.99 5.79L12 15.27l5.19 2.71-.99-5.79 4.2-4.09-5.8-.84z" />
+        </svg>
+      </span>
+      <span>Rewards</span>
+    </RouterLink>
+
     <RouterLink class="nav-link" to="/profile">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true">

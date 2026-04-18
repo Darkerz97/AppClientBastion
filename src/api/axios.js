@@ -4,13 +4,41 @@ import { Capacitor } from '@capacitor/core'
 export const AUTH_TOKEN_KEY = 'cardbastion.customer.token'
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+const configuredProxyTarget = import.meta.env.VITE_API_PROXY_TARGET || ''
 const nativeApiBaseUrl = import.meta.env.VITE_API_NATIVE_BASE_URL || 'https://www.cardbastion.com/api'
 const configuredSiteBaseUrl = import.meta.env.VITE_PUBLIC_SITE_URL || '/'
+
+function isLocalWebHost() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const hostname = window.location.hostname
+
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local')
+  )
+}
+
+function resolveWebApiBaseUrl() {
+  if (/^https?:\/\//i.test(configuredApiBaseUrl)) {
+    return configuredApiBaseUrl
+  }
+
+  if (configuredProxyTarget && isLocalWebHost()) {
+    return buildAbsoluteUrl(configuredProxyTarget, configuredApiBaseUrl)
+  }
+
+  return configuredApiBaseUrl
+}
 
 export const RESOLVED_API_BASE_URL =
   Capacitor.isNativePlatform() && !/^https?:\/\//i.test(configuredApiBaseUrl)
     ? nativeApiBaseUrl
-    : configuredApiBaseUrl
+    : resolveWebApiBaseUrl()
 
 export const RESOLVED_SITE_BASE_URL =
   Capacitor.isNativePlatform() && !/^https?:\/\//i.test(configuredSiteBaseUrl)
@@ -79,7 +107,15 @@ export function getApiErrorMessage(error, fallback = 'Ocurrio un error inesperad
   }
 
   if (error?.response?.status === 404) {
-    return 'La ruta API no existe en el servidor configurado.'
+    const route =
+      error?.config?.url ||
+      error?.response?.config?.url ||
+      error?.request?.responseURL ||
+      ''
+
+    return route
+      ? `La ruta API no existe en el servidor configurado: ${route}`
+      : 'La ruta API no existe en el servidor configurado.'
   }
 
   return (
