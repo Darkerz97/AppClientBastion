@@ -18,8 +18,19 @@ defineProps({
       </div>
       <span class="status-pill is-default">Canje futuro</span>
     </div>
-    <p class="muted">
-      {{ summary.expiringPoints ? `${summary.expiringPoints} puntos vencen el ${formatShortDate(summary.expiringAt)}` : 'Sin vencimientos cercanos.' }}
-    </p>
+    <div class="data-grid">
+      <div class="data-point">
+        <span>Puntos actuales</span>
+        <strong>{{ summary.pointsBalance || 0 }} pts</strong>
+      </div>
+      <div class="data-point">
+        <span>Credito disponible</span>
+        <strong>{{ formatCurrency(summary.creditBalance) }}</strong>
+      </div>
+      <div class="data-point">
+        <span>Vencimiento</span>
+        <strong>{{ summary.expiringPoints ? `${summary.expiringPoints} pts · ${formatShortDate(summary.expiringAt)}` : 'Sin vencimientos' }}</strong>
+      </div>
+    </div>
   </article>
 </template>

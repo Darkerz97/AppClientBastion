@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
 import DataModeNotice from '../components/DataModeNotice.vue'
@@ -8,24 +8,25 @@ import LoadingState from '../components/LoadingState.vue'
 import OrderSummaryCard from '../components/OrderSummaryCard.vue'
 import StatCard from '../components/StatCard.vue'
 import { getCustomerOrders } from '../services/ordersService'
+import { getRewardsOverview } from '../services/rewardsService'
 import { useAuthStore } from '../stores/auth'
-import { formatCurrency } from '../utils/formatters'
+import { formatCurrency, formatShortDate } from '../utils/formatters'
 import { toServiceError } from '../utils/serviceError'
 
 const authStore = useAuthStore()
 const loading = ref(true)
 const error = ref('')
 const orders = ref([])
-
-const totalAmount = computed(() => orders.value.reduce((sum, order) => sum + order.total, 0))
-const totalRewards = computed(() => orders.value.reduce((sum, order) => sum + order.rewardsGenerated, 0))
+const rewardsSummary = ref({})
 
 async function loadOrders() {
   loading.value = true
   error.value = ''
 
   try {
-    orders.value = await getCustomerOrders()
+    const [ordersData, rewardsData] = await Promise.all([getCustomerOrders(), getRewardsOverview()])
+    orders.value = ordersData
+    rewardsSummary.value = rewardsData.summary
   } catch (requestError) {
     error.value = toServiceError(requestError, 'No fue posible cargar tus compras.')
   } finally {
@@ -57,10 +58,28 @@ onMounted(loadOrders)
 
     <section class="metric-grid">
       <StatCard label="Compras" :value="`${orders.length}`" />
-      <StatCard label="Monto acumulado" :value="formatCurrency(totalAmount)" />
-      <StatCard label="Puntos generados" :value="`${totalRewards}`" />
-      <StatCard label="Credito actual" :value="formatCurrency(authStore.user?.availableCredit)" />
+      <StatCard label="Puntos actuales" :value="`${rewardsSummary.pointsBalance || authStore.user?.rewardPoints || 0}`" />
+      <StatCard label="Credito actual" :value="formatCurrency(rewardsSummary.creditBalance || authStore.user?.availableCredit)" />
+      <StatCard
+        label="Vencimiento"
+        :value="rewardsSummary.expiringPoints ? `${rewardsSummary.expiringPoints} pts · ${formatShortDate(rewardsSummary.expiringAt)}` : 'Sin vencimientos'"
+      />
     </section>
+
+    <div v-if="rewardsSummary.expiringPoints" class="surface-card section-card section-card--tight">
+      <div class="surface-subcard">
+        <div class="row-between">
+          <div>
+            <p class="preorder-label">Aviso de recompensas</p>
+            <h3 class="preorder-name">Tienes puntos por vencer</h3>
+          </div>
+          <span class="status-pill is-pending">{{ rewardsSummary.expiringPoints }} pts</span>
+        </div>
+        <p class="muted">
+          Usa tu credito y mantente activo antes del {{ formatShortDate(rewardsSummary.expiringAt) }} para no perder valor acumulado.
+        </p>
+      </div>
+    </div>
 
     <LoadingState v-if="loading" title="Cargando compras" message="Estamos consultando tu historial mas reciente." />
 

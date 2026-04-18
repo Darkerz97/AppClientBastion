@@ -1,5 +1,5 @@
 <script setup>
-import { formatCurrency } from '../utils/formatters'
+import { formatCurrency, formatShortDate } from '../utils/formatters'
 
 defineProps({
   summary: {
@@ -21,16 +21,16 @@ defineProps({
 
     <div class="data-grid">
       <div class="data-point">
+        <span>Puntos actuales</span>
+        <strong>{{ summary.pointsBalance || 0 }} pts</strong>
+      </div>
+      <div class="data-point">
         <span>Credito disponible</span>
         <strong>{{ formatCurrency(summary.creditBalance) }}</strong>
       </div>
       <div class="data-point">
-        <span>Saldo total</span>
-        <strong>{{ formatCurrency(summary.rewardBalance) }}</strong>
-      </div>
-      <div class="data-point">
         <span>Por vencer</span>
-        <strong>{{ summary.expiringPoints || 0 }} pts</strong>
+        <strong>{{ summary.expiringPoints ? `${summary.expiringPoints} pts · ${formatShortDate(summary.expiringAt)}` : 'Sin vencimientos' }}</strong>
       </div>
     </div>
   </article>
